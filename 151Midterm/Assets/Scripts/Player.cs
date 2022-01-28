@@ -1,6 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
+
+//OSC package
+using UnityOSC;
 
 public class Player : MonoBehaviour
 {
@@ -27,12 +31,21 @@ public class Player : MonoBehaviour
     [SerializeField]
     private GameObject bulletPref;
 
+    //OSC stuff
+    Dictionary<string, ServerLog> servers = new Dictionary<string, ServerLog>();
+    public Text countText;
+    private int count=0;
     // Start is called before the first frame update
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         extraJumps = resetJumps;
         respawnPoint = transform.position;
+
+        //OSC stuff
+        OSCHandler.Instance.Init();
+        OSCHandler.Instance.SendMessageToClient("pd","/unity/trigger", "ready");
+        setCountText ();
     }
     private void FixedUpdate() {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, whatIsGround);
@@ -66,6 +79,19 @@ public class Player : MonoBehaviour
             spawnedBullet.GetComponent<Rigidbody2D>().velocity = new Vector2(direction, 0) * 50;
             Destroy(spawnedBullet, 3f);
         }
+
+        //OSC stuff
+        OSCHandler.Instance.UpdateLogs();
+        Dictionary<string, ServerLog> servers = new Dictionary<string, ServerLog>();
+        servers = OSCHandler.Instance.Servers;
+
+        foreach(KeyValuePair<string, ServerLog> item in servers){
+            if(item.Value.log.Count > 0){
+                int lastPacketIndex = item.Value.packets.Count-1;
+                countText.text = item.Value.packets [lastPacketIndex].Address.ToString ();
+				countText.text += item.Value.packets [lastPacketIndex].Data [0].ToString ();
+            }
+        }
     }
     private void OnTriggerEnter2D(Collider2D other) {
         if(other.CompareTag("checkPoint")){
@@ -73,7 +99,24 @@ public class Player : MonoBehaviour
             respawnPoint = other.gameObject.transform.position;
         }
         if(other.CompareTag("PowerUp")){
+            //used for triggering OSC in PD
+            count = count+1;
+            setCountText();
+
+
             Destroy(other.gameObject);
         }
+    }
+
+    //used for OSC example (refer to lines 99 and 104 in OSCHandler script for flags)
+    void setCountText()
+	{
+        countText.text = "Count: " + count.ToString();
+
+        //************* Send the message to the client...
+        OSCHandler.Instance.SendMessageToClient ("pd", "/unity/trigger", count);
+        //*************
+
+
     }
 }
