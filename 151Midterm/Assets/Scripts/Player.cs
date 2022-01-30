@@ -34,7 +34,7 @@ public class Player : MonoBehaviour
     //OSC stuff
     Dictionary<string, ServerLog> servers = new Dictionary<string, ServerLog>();
     public Text countText;
-    private int count=0;
+    private int count=0, powerUpCount = 0;
     // Start is called before the first frame update
     void Start()
     {
@@ -44,8 +44,10 @@ public class Player : MonoBehaviour
 
         //OSC stuff
         OSCHandler.Instance.Init();
-        OSCHandler.Instance.SendMessageToClient("pd","/unity/trigger", "ready");
-        setCountText ();
+        //OSCHandler.Instance.SendMessageToClient("pd","/unity/trigger", "ready");
+        //OSCHandler.Instance.SendMessageToClient("pd","/unity/bg", "ready");
+        OSCHandler.Instance.SendMessageToClient("pd","/unity/bg", count);
+        //setCountText ();
     }
     private void FixedUpdate() {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, whatIsGround);
@@ -100,7 +102,7 @@ public class Player : MonoBehaviour
         }
         if(other.CompareTag("PowerUp")){
             //used for triggering OSC in PD
-            count = count+1;
+            //count = count+1;
             setCountText();
 
 
@@ -114,9 +116,19 @@ public class Player : MonoBehaviour
         countText.text = "Count: " + count.ToString();
 
         //************* Send the message to the client...
-        OSCHandler.Instance.SendMessageToClient ("pd", "/unity/trigger", count);
+        //OSCHandler.Instance.SendMessageToClient ("pd", "/unity/trigger", count);
+        OSCHandler.Instance.SendMessageToClient("pd","/unity/powerup", powerUpCount);
+        StartCoroutine(powerUpDelay());
+        //OSCHandler.Instance.SendMessageToClient("pd","/unity/bg", count);
         //*************
 
 
+    }
+    IEnumerator powerUpDelay(){
+        yield return new WaitForSeconds(.1f);
+        powerUpCount += 1;
+        OSCHandler.Instance.SendMessageToClient("pd","/unity/powerup", powerUpCount);
+        powerUpCount = 0;
+        StopAllCoroutines();
     }
 }
