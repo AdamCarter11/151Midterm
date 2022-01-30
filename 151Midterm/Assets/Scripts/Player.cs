@@ -99,6 +99,7 @@ public class Player : MonoBehaviour
         if(other.CompareTag("checkPoint")){
             Debug.Log("CHECKPOINT!");
             respawnPoint = other.gameObject.transform.position;
+            OSCHandler.Instance.SendMessageToClient("pd","/unity/checkpoint", 1);
         }
         if(other.CompareTag("PowerUp")){
             //used for triggering OSC in PD
